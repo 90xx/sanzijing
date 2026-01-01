@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>三字经</title>
+  <style>
+    body { font-family: "Microsoft YaHei", sans-serif; background: #f8f9fa; padding: 20px; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    textarea { width: 100%; height: 100px; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+    .btns { text-align: center; margin: 15px 0; }
+    button { padding: 8px 20px; margin: 0 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .encrypt { background: #3b82f6; color: white; }
+    .decrypt { background: #10b981; color: white; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>三字经</h2>
+
+    <textarea id="top" placeholder="在此输入或粘贴..."></textarea>
+
+    <div class="btns">
+      <button class="encrypt" onclick="encrypt()">🔒 加密</button>
+      <button class="decrypt" onclick="decrypt()">🔓 解密</button>
+    </div>
+
+    <textarea id="bottom" placeholder="结果将显示在这里..." readonly></textarea>
+  </div>
+
+  <script>
+    // ✅ 64 条严格无重复三字句（已去重！）
+    const phrases = [
+      '人之初', '性本善', '性相近', '习相远', '苟不教', '性乃迁', '教之道', '贵以专',
+      '昔孟母', '择邻处', '断机杼', '窦燕山', '有义方', '教五子', '名俱扬', '父之过',
+      '师之惰', '非所宜', '老何为', '不成器', '不知义', '方少时', '亲师友', '习礼仪',
+      '香九龄', '能温席', '所当执', '融四岁', '能让梨', '弟于长', '宜先知', '首孝悌',
+      '次见闻', '知某数', '识某文', '一而十', '十而百', '百而千', '千而万', '三才者',
+      '天地人', '三光者', '日月星', '三纲者', '君臣义', '父子亲', '夫妇顺', '曰春夏',
+      '曰秋冬', '此四时', '运不穷', '曰南北', '曰西东', '此四方', '应乎中', '养不教',
+      '教不严', '玉不琢', '为人子', '幼不学', '子不学', '民为贵', '社稷次', '君为轻'
+    ];
+
+    // 验证无重复
+    if (new Set(phrases).size !== 64) {
+      alert("错误：格言有重复！");
+    }
+
+    // 将字符串转为 UTF-8 字节数组
+    function stringToBytes(str) {
+      const utf8 = new TextEncoder().encode(str);
+      return Array.from(utf8);
+    }
+
+    // 将字节数组转为 64 进制索引数组
+    function bytesToBase64Indices(bytes) {
+      if (bytes.length === 0) return [];
+      let indices = [];
+      let value = 0;
+      let bits = 0;
+
+      for (let byte of bytes) {
+        value = (value << 8) | byte;
+        bits += 8;
+        while (bits >= 6) {
+          bits -= 6;
+          indices.push((value >> bits) & 63);
+        }
+      }
+      if (bits > 0) {
+        indices.push((value << (6 - bits)) & 63);
+      }
+      return indices;
+    }
+
+    // 将 64 进制索引数组转回字节数组
+    function base64IndicesToBytes(indices) {
+      let bytes = [];
+      let value = 0;
+      let bits = 0;
+
+      for (let idx of indices) {
+        value = (value << 6) | idx;
+        bits += 6;
+        while (bits >= 8) {
+          bits -= 8;
+          bytes.push((value >> bits) & 255);
+        }
+      }
+      // 忽略最后不足 8 位的填充
+      return bytes;
+    }
+
+    // 将字节数组转为字符串
+    function bytesToString(bytes) {
+      const uint8 = new Uint8Array(bytes);
+      return new TextDecoder().decode(uint8);
+    }
+
+    function encrypt() {
+      const input = document.getElementById('top').value;
+      if (!input) { alert('请输入内容'); return; }
+
+      try {
+        const bytes = stringToBytes(input);
+        const indices = bytesToBase64Indices(bytes);
+        const result = indices.map(i => phrases[i]).join(' ');
+        document.getElementById('bottom').value = result;
+      } catch (e) {
+        alert('加密失败');
+      }
+    }
+
+    function decrypt() {
+      const input = document.getElementById('top').value;
+      if (!input) { alert('请粘贴三字经'); return; }
+
+      const words = input.split(/\s+/).filter(w => w);
+      const indices = [];
+
+      for (let word of words) {
+        const idx = phrases.indexOf(word);
+        if (idx === -1) {
+          alert('无效片段：' + word);
+          return;
+        }
+        indices.push(idx);
+      }
+
+      try {
+        const bytes = base64IndicesToBytes(indices);
+        const original = bytesToString(bytes);
+        document.getElementById('bottom').value = original;
+      } catch (e) {
+        alert('解密失败');
+      }
+    }
+  </script>
+</body>
+</html>
